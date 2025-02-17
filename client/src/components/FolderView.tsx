@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Folder, ChevronRight, Plus } from "lucide-react"
+import { Folder, ChevronRight, Plus, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -20,6 +20,7 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
   const [newFolderName, setNewFolderName] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [folderToDelete, setFolderToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     loadFolders()
@@ -57,13 +58,20 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
       // Delete folder
       await FolderService.deleteFolder(folderId)
       
-      // Notify about deleted documents
-      documentDeleteListeners.forEach(listener => listener(docIds))
-      
       // Update local state
-      setFolders(folders.filter(f => f.id !== folderId))
+      setFolders(prevFolders => prevFolders.filter(f => f.id !== folderId))
+      
+      // Clear selected folder if it was deleted
       if (selectedFolder === folderId) {
         onFolderSelect("")
+      }
+      
+      // Close the delete dialog
+      setFolderToDelete(null)
+      
+      // Notify about deleted documents
+      if (typeof DocumentService !== 'undefined' && DocumentService.onDocumentsDeleted) {
+        documentDeleteListeners.forEach(listener => listener(docIds))
       }
     } catch (error) {
       console.error('Failed to delete folder:', error)
@@ -100,19 +108,62 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
       <CardContent>
         <div className="space-y-2">
           {folders.map((folder) => (
-            <Button
-              key={folder.id}
-              variant={selectedFolder === folder.id ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => onFolderSelect(folder.id)}
-            >
-              <Folder className="mr-2 h-4 w-4" />
-              {folder.name}
-              <ChevronRight className="ml-auto h-4 w-4" />
-            </Button>
+            <div key={folder.id} className="flex items-center group">
+              <Button
+                variant={selectedFolder === folder.id ? "secondary" : "ghost"}
+                className="flex-1 justify-start"
+                onClick={() => onFolderSelect(folder.id)}
+              >
+                <Folder className="mr-2 h-4 w-4" />
+                {folder.name}
+                <ChevronRight className="ml-auto h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 ml-1"
+                onClick={() => setFolderToDelete(folder.id)}
+                disabled={loading}
+              >
+                <Trash className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
           ))}
         </div>
       </CardContent>
+
+      <Dialog open={!!folderToDelete} onOpenChange={() => setFolderToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Folder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete this folder? This will also delete all documents inside the folder.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setFolderToDelete(null)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (folderToDelete) {
+                    handleDeleteFolder(folderToDelete);
+                  }
+                }}
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

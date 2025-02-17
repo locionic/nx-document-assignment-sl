@@ -16,9 +16,7 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
   "exclude": [
@@ -43,5 +41,10 @@
     "src/**/*.js",
     "src/**/*.jsx",
     "src/components/**/*.tsx"
+  ],
+  "references": [
+    {
+      "path": "../shared-models/tsconfig.lib.json"
+    }
   ]
 }
