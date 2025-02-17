@@ -18,7 +18,17 @@ export default function RecentDocuments({ onDocumentSelect, selectedDocumentId }
   const [recentDocs, setRecentDocs] = useState<DocumentHistoryEntry[]>([])
   const [loading, setLoading] = useState(false)
 
+  console.log("selectedDocumentId", selectedDocumentId)
+
   useEffect(() => {
+    // Initial load: run once on mount
+    loadHistory();
+  }, []);
+
+  useEffect(() => {
+
+    if (!selectedDocumentId) return;
+
     loadHistory()
     
     // Subscribe to document deletions
@@ -34,11 +44,7 @@ export default function RecentDocuments({ onDocumentSelect, selectedDocumentId }
     return () => {
       unsubscribe();
     };
-  }, []);
-
-  useEffect(() => {
-    loadHistory()
-  }, [selectedDocumentId])
+  }, [selectedDocumentId]);
 
   const loadHistory = async () => {
     try {

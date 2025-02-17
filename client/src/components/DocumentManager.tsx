@@ -9,11 +9,12 @@ import FolderView from "@/components/FolderView"
 import DocumentView from "@/components/DocumentView"
 import RecentDocuments from "@/components/RecentDocuments"
 import SearchResults from "@/components/SearchResults"
+import { HistoryService } from "@/api/services/history.service"
 
 export default function DocumentManager() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
-  const [selectedDocument, setSelectedDocument] = useState<string | null>(null)
+  const [selectedDocument, setSelectedDocument] = useState<string | null>("")
   const [showSearchResults, setShowSearchResults] = useState(false)
 
   const handleSearchFocus = () => {
@@ -25,7 +26,7 @@ export default function DocumentManager() {
     setTimeout(() => setShowSearchResults(false), 200)
   }
 
-  const handleDocumentSelect = (documentId: string) => {
+  const handleDocumentSelect = async (documentId: string) => {
     setSelectedDocument(documentId)
     setSearchQuery("") // Clear search when document is selected
   }

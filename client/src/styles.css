@@ -4,26 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@theme {
-    --font-sans: Inter, system-ui;
-    --font-grotesque: "Bricolage Grotesque", system-ui-serif, sans-serif;
-    --color-lemon-lime: #DBF227;
-    --color-yellow-green: #9FC131;
-    --color-brunswick-green: #005c53;
-    --color-prussian-blue: #042940;
-}
-
-@custom-variant hover-focus-ariacurrent {
-    &:hover {
-        @media (hover: hover) {
-            @slot;
-        }
-    }
-    &:is(:focus, [aria-current="true"]) {
-        @slot;
-    }
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
