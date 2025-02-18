@@ -2,8 +2,8 @@
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/kamilabs-ai/nx-document-assignment.git
-   cd nx-document-assignment
+   git clone https://github.com/locionic/nx-document-assignment-sl.git
+   cd nx-document-assignment-sl
    ```
 2. **Install Dependencies**
 
