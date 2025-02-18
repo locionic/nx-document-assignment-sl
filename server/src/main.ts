@@ -26,6 +26,11 @@ app.use(cors());
 app.use(express.json());
 app.use('/api', routes);
 
+// Add a default root route so the base URL is accessible
+app.get('/', (req, res) => {
+  res.send('Hello from Express backend!');
+});
+
 if (require.main === module) {
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () =>
