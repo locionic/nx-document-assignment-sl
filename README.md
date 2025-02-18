@@ -13,8 +13,8 @@
    # run client and server apps
    pnpm start
 
-   # run tests
-   pnpm test
+   # run test
+   pnpm test:client
    ```
 
 ## **Description:**
