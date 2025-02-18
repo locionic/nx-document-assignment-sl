@@ -21,6 +21,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  test: {
+    setupFiles: 'src/setupTests.ts',
+    globals: true,
+    environment: 'jsdom'
+  },
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],

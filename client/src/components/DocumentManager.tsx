@@ -1,21 +1,23 @@
 "use client"
 
 import { useState } from "react"
-import { Folder, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import FolderView from "@/components/FolderView"
 import DocumentView from "@/components/DocumentView"
 import RecentDocuments from "@/components/RecentDocuments"
 import SearchResults from "@/components/SearchResults"
 import { HistoryService } from "@/api/services/history.service"
+import { DocumentService } from "@/api/services/document.service"
+import { useToast } from "@/hooks/use-toast"
 
 export default function DocumentManager() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [selectedDocument, setSelectedDocument] = useState<string | null>("")
   const [showSearchResults, setShowSearchResults] = useState(false)
+  const { toast } = useToast()
 
   const handleSearchFocus = () => {
     setShowSearchResults(true)
@@ -27,6 +29,13 @@ export default function DocumentManager() {
   }
 
   const handleDocumentSelect = async (documentId: string) => {
+    if (documentId) {
+      const doc = await DocumentService.getDocument(documentId)
+      await HistoryService.addToHistory({
+        id: doc.id,
+        title: doc.title
+      })
+    }
     setSelectedDocument(documentId)
     setSearchQuery("") // Clear search when document is selected
   }
@@ -55,10 +64,6 @@ export default function DocumentManager() {
                 />
               )}
             </div>
-            <Button variant="default">
-              <Folder className="mr-2 h-4 w-4" />
-              New Folder
-            </Button>
           </div>
         </header>
 
@@ -75,7 +80,8 @@ export default function DocumentManager() {
             <DocumentView
               folderId={selectedFolder}
               documentId={selectedDocument}
-              onDocumentSelect={setSelectedDocument}
+              // onDocumentSelect={setSelectedDocument}
+              onDocumentSelect={handleDocumentSelect}
             />
           </div>
           <div className="col-span-3">

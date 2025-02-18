@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SearchService } from "@/api/services/search.service"
-
+import { useToast } from "@/hooks/use-toast"
 interface SearchResultsProps {
   query: string
   onDocumentSelect: (documentId: string) => void
@@ -16,7 +16,7 @@ interface SearchResultsProps {
 export default function SearchResults({ query, onDocumentSelect, onClose }: SearchResultsProps) {
   const [results, setResults] = useState<Array<{ id: string; title: string; snippet: string }>>([])
   const [loading, setLoading] = useState(false)
-
+  const { toast } = useToast()
   useEffect(() => {
     if (query.trim()) {
       searchDocuments()
@@ -32,6 +32,11 @@ export default function SearchResults({ query, onDocumentSelect, onClose }: Sear
       setResults(data)
     } catch (error) {
       console.error('Failed to search documents:', error)
+      toast({
+        title: "Failed to search documents",
+        description: "Please try again later.",
+        variant: "destructive",
+      })
       setResults([])
     } finally {
       setLoading(false)

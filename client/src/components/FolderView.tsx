@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { FolderService } from "@/api/services/folder.service"
 import type { DocumentFolder } from '@/../../shared-models/src/index'
 import { DocumentService } from "@/api/services/document.service"
+import { useToast } from "@/hooks/use-toast"
 
 interface FolderViewProps {
   selectedFolder: string | null
@@ -21,6 +22,9 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null)
+  const [createFolderError, setCreateFolderError] = useState("")
+  const [deleteFolderError, setDeleteFolderError] = useState("")
+  const { toast } = useToast()
 
   useEffect(() => {
     loadFolders()
@@ -31,29 +35,44 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
       const data = await FolderService.getFolders()
       setFolders(data)
     } catch (error) {
-      console.error('Failed to load folders:', error)
+      console.error("Failed to load folders:", error)
+      toast({
+        title: "Failed to load folders",
+        description: "Please try again later.",
+        variant: "destructive",
+      })
     }
   }
 
   const handleCreateFolder = async () => {
-    if (newFolderName.trim()) {
-      try {
-        const newFolder = await FolderService.createFolder(newFolderName)
-        setFolders([...folders, newFolder])
-        setNewFolderName("")
-        setIsDialogOpen(false)
-      } catch (error) {
-        console.error('Failed to create folder:', error)
-      }
+    if (!newFolderName.trim()) {
+      setCreateFolderError("Folder name is required.")
+      return
+    }
+    try {
+      setLoading(true)
+      const newFolder = await FolderService.createFolder(newFolderName)
+      setFolders([...folders, newFolder])
+      setNewFolderName("")
+      setIsDialogOpen(false)
+      setCreateFolderError("")
+    } catch (error: any) {
+      console.error("Failed to create folder:", error)
+      setCreateFolderError(error.message || "Failed to create folder.")
+      toast({
+        title: "Failed to create folder",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleDeleteFolder = async (folderId: string) => {
     try {
       setLoading(true)
-      // Get documents in folder first
-      const folderDocs = await FolderService.getDocumentsByFolder(folderId)
-      const docIds = folderDocs.map(doc => doc.id)
+      setDeleteFolderError("")
       
       // Delete folder
       await FolderService.deleteFolder(folderId)
@@ -69,12 +88,18 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
       // Close the delete dialog
       setFolderToDelete(null)
       
-      // Notify about deleted documents
-      if (typeof DocumentService !== 'undefined' && DocumentService.onDocumentsDeleted) {
-        documentDeleteListeners.forEach(listener => listener(docIds))
+      // Notify about deleted documents if applicable
+      if (typeof DocumentService !== "undefined" && DocumentService.onDocumentsDeleted) {
+        // The delete notification can be handled here if needed.
       }
-    } catch (error) {
-      console.error('Failed to delete folder:', error)
+    } catch (error: any) {
+      console.error("Failed to delete folder:", error)
+      setDeleteFolderError(error.message || "Failed to delete folder.")
+      toast({
+        title: "Failed to delete folder",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -98,9 +123,17 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
               <Input
                 placeholder="Folder name"
                 value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
+                onChange={(e) => {
+                  setNewFolderName(e.target.value)
+                  if (createFolderError) setCreateFolderError("")
+                }}
               />
-              <Button onClick={handleCreateFolder}>Create Folder</Button>
+              {createFolderError && (
+                <p className="text-red-500 text-sm mt-2">{createFolderError}</p>
+              )}
+              <Button onClick={handleCreateFolder} disabled={loading}>
+                Create Folder
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -132,7 +165,7 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
         </div>
       </CardContent>
 
-      <Dialog open={!!folderToDelete} onOpenChange={() => setFolderToDelete(null)}>
+      <Dialog open={!!folderToDelete} onOpenChange={() => { setFolderToDelete(null); setDeleteFolderError("") }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Folder</DialogTitle>
@@ -141,10 +174,13 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
             <p className="text-sm text-muted-foreground">
               Are you sure you want to delete this folder? This will also delete all documents inside the folder.
             </p>
+            {deleteFolderError && (
+              <p className="text-red-500 text-sm">{deleteFolderError}</p>
+            )}
             <div className="flex justify-end gap-2">
               <Button
                 variant="ghost"
-                onClick={() => setFolderToDelete(null)}
+                onClick={() => { setFolderToDelete(null); setDeleteFolderError("") }}
                 disabled={loading}
               >
                 Cancel
@@ -153,7 +189,7 @@ export default function FolderView({ selectedFolder, onFolderSelect }: FolderVie
                 variant="destructive"
                 onClick={() => {
                   if (folderToDelete) {
-                    handleDeleteFolder(folderToDelete);
+                    handleDeleteFolder(folderToDelete)
                   }
                 }}
                 disabled={loading}

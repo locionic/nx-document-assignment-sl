@@ -13,6 +13,7 @@ import { DocumentService } from "@/api/services/document.service"
 import { FolderService } from "@/api/services/folder.service"
 import { HistoryService } from "@/api/services/history.service"
 import type { Document } from '@/../../shared-models/src/index'
+import { useToast } from "@/hooks/use-toast"
 
 interface DocumentViewProps {
   folderId: string | null
@@ -26,6 +27,9 @@ export default function DocumentView({ folderId, documentId, onDocumentSelect }:
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [createError, setCreateError] = useState("")
+  const [editingContent, setEditingContent] = useState("")
+  const { toast } = useToast()
 
   useEffect(() => {
     setDocuments([])
@@ -41,6 +45,13 @@ export default function DocumentView({ folderId, documentId, onDocumentSelect }:
     }
   }, [documentId])
 
+  const selectedDocument = documents.find((doc) => doc.id === documentId)
+  useEffect(() => {
+    if (selectedDocument) {
+      setEditingContent(selectedDocument.content)
+    }
+  }, [selectedDocument])
+
   const loadFolderDocuments = async () => {
     if (!folderId) return
     try {
@@ -48,7 +59,12 @@ export default function DocumentView({ folderId, documentId, onDocumentSelect }:
       const data = await FolderService.getDocumentsByFolder(folderId)
       setDocuments(data)
     } catch (error) {
-      console.error('Failed to load documents:', error)
+      console.error('Failed to load folder documents:', error)
+      toast({
+        title: "Failed to load folder documents",
+        description: "Please try again later.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -59,37 +75,55 @@ export default function DocumentView({ folderId, documentId, onDocumentSelect }:
     try {
       setLoading(true)
       const doc = await DocumentService.getDocument(documentId)
+      // await HistoryService.addToHistory({
+      //   id: doc.id,
+      //   title: doc.title
+      // })
       if (!documents.find(d => d.id === doc.id)) {
         setDocuments(prev => [...prev, doc])
       }
-      await HistoryService.addToHistory({
-        id: doc.id,
-        title: doc.title
-      })
     } catch (error) {
       console.error('Failed to load document:', error)
+      toast({
+        title: "Failed to load document",
+        description: "Please try again later.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreateDocument = async () => {
-    if (newDoc.title.trim() && folderId) {
-      try {
-        setLoading(true)
-        const created = await DocumentService.createDocument({
-          title: newDoc.title,
-          content: newDoc.content,
-          folderId,
-        })
-        setDocuments(prev => [...prev, created])
-        setNewDoc({ title: "", content: "" })
-        setIsDialogOpen(false)
-      } catch (error) {
-        console.error('Failed to create document:', error)
-      } finally {
-        setLoading(false)
-      }
+    if (!newDoc.title.trim() || !newDoc.content.trim()) {
+      setCreateError("Both title and content are required.")
+      return
+    }
+    if (!folderId) {
+      setCreateError("Folder is missing.")
+      return
+    }
+    try {
+      setLoading(true)
+      const created = await DocumentService.createDocument({
+        title: newDoc.title,
+        content: newDoc.content,
+        folderId,
+      })
+      setDocuments(prev => [...prev, created])
+      setNewDoc({ title: "", content: "" })
+      setIsDialogOpen(false)
+      setCreateError("")
+    } catch (error: any) {
+      setCreateError(error.message || "Failed to create document")
+      console.error("Failed to create document:", error)
+      toast({
+        title: "Failed to create document",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -98,9 +132,16 @@ export default function DocumentView({ folderId, documentId, onDocumentSelect }:
     try {
       setLoading(true)
       const updated = await DocumentService.updateDocument(documentId, content)
-      setDocuments(prev => prev.map(doc => doc.id === documentId ? updated : doc))
+      setDocuments(prev =>
+        prev.map(doc => doc.id === documentId ? updated : doc)
+      )
     } catch (error) {
       console.error('Failed to update document:', error)
+      toast({
+        title: "Failed to update document",
+        description: "Please try again later.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -116,12 +157,16 @@ export default function DocumentView({ folderId, documentId, onDocumentSelect }:
       }
     } catch (error) {
       console.error('Failed to delete document:', error)
+      toast({
+        title: "Failed to delete document",
+        description: "Please try again later.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
   }
 
-  const selectedDocument = documents.find((doc) => doc.id === documentId)
   const folderDocuments = documents.filter((doc) => doc.folderId === folderId)
 
   return (
@@ -153,6 +198,9 @@ export default function DocumentView({ folderId, documentId, onDocumentSelect }:
                   onChange={(e) => setNewDoc({ ...newDoc, content: e.target.value })}
                   className="h-40"
                 />
+                {createError && (
+                  <p className="text-red-500 text-sm mt-2">{createError}</p>
+                )}
                 <Button onClick={handleCreateDocument} disabled={loading}>
                   Create Document
                 </Button>
@@ -189,8 +237,9 @@ export default function DocumentView({ folderId, documentId, onDocumentSelect }:
               </div>
               {editMode ? (
                 <Textarea
-                  value={selectedDocument?.content}
-                  onChange={(e) => handleUpdateDocument(e.target.value)}
+                  value={editingContent}
+                  onChange={(e) => setEditingContent(e.target.value)}
+                  onBlur={() => handleUpdateDocument(editingContent)}
                   className="min-h-[400px]"
                 />
               ) : (

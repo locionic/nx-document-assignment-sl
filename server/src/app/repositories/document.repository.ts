@@ -36,6 +36,9 @@ export const DocumentRepository = {
     const index = documentBase.documents.findIndex((doc) => doc.id === id);
     if (index === -1) return false;
     documentBase.documents.splice(index, 1);
+    documentBase.history = documentBase.history.filter(
+      (historyEntry) => historyEntry.id !== id
+    );
     return true;
   },
 
